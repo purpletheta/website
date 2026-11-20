@@ -573,8 +573,8 @@ a:hover {
 }
 
 .book-cover {
-  width: 84px;
-  height: 112px;
+  width: 120px;
+  height: 180px;
   flex-shrink: 0;
   background: #f2eef7;
   border-radius: 3px;
