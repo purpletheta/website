@@ -1,23 +1,21 @@
 ---
+// Import the main site wrapper (header, footer, global styles)
 import BaseLayout from '../../layouts/BaseLayout.astro';
+// Import getCollection to fetch all Markdown files from 'src/content/books/'
+import { getCollection } from 'astro:content';
 
-const books = [
-  {
-    title: 'Squares and Square Roots',
-    description: 'A concept-focused Class 8 learning resource exploring square numbers, patterns, properties and square roots.',
-    label: 'Class 8 Mathematics',
-    cover: '', // Add '/images/your-squares-cover.jpg' here once uploaded
-  },
-  {
-    title: '20 Things About Zero',
-    description: 'A curiosity-led book introducing children to the fascinating ideas and stories connected with zero.',
-    label: 'Children · Mathematics',
-    cover: '/images/zero_space_cover.jpg',
-  },
-];
+// 1. Fetch all non-draft books from the 'books' collection
+const allBooks = await getCollection('books', ({ data }) => !data.draft);
+
+// 2. Sort the books using the 'order' number (1 appears before 2, etc.)
+const books = allBooks.sort((a, b) => a.data.order - b.data.order);
 ---
 
-<BaseLayout title="Books" description="Discover PurpleTheta e-books and reading resources. Find book descriptions, previews and links to Google Play Books or Amazon.">
+<BaseLayout 
+  title="Books" 
+  description="Discover PurpleTheta e-books and reading resources. Find book descriptions, previews and links to Google Play Books or Amazon."
+>
+  <!-- Top Hero Banner (kept identical to your original design) -->
   <section class="page-hero">
     <div class="wrap page-heading">
       <p class="eyebrow">Read · Learn</p>
@@ -26,31 +24,51 @@ const books = [
     </div>
   </section>
 
+  <!-- Main Books Grid -->
   <section class="section">
     <div class="wrap">
       <div class="book-grid">
         {books.map(book => (
           <article class="book-card">
-            <div class="book-cover" style={book.cover ? 'padding: 0;' : ''}>
-              {book.cover ? (
-                <img src={book.cover} alt={`Cover of ${book.title}`} />
+            
+            <!-- Clickable Book Cover linking to /books/<book-id>/ -->
+            <a href={`/books/${book.id}/`} class="book-cover" style={book.data.cover ? 'padding: 0; display: block;' : 'display: flex;'}>
+              {book.data.cover ? (
+                /* Show the cover image if 'cover' is provided in the Markdown file */
+                <img src={book.data.cover} alt={`Cover of ${book.data.title}`} />
               ) : (
+                /* Fallback text cover if no cover image is uploaded yet */
                 <div>
                   <small style="display:block;font-size:10px;letter-spacing:1.2px;font-weight:500;margin-bottom:6px">PURPLETHETA</small>
-                  {book.title}
+                  {book.data.title}
                 </div>
               )}
-            </div>
+            </a>
+
+            <!-- Book Details -->
             <div class="book-info">
-              <div class="article-meta">{book.label}</div>
-              <h3>{book.title}</h3>
-              <p>{book.description}</p>
-              <span class="card-link">Book links to be added</span>
+              <div class="article-meta">{book.data.label}</div>
+              
+              <!-- Clickable Title linking to the individual book page -->
+              <h3>
+                <a href={`/books/${book.id}/`} style="text-decoration: none; color: inherit;">
+                  {book.data.title}
+                </a>
+              </h3>
+              
+              <p>{book.data.description}</p>
+              
+              <!-- Link to open the full book page (preview, chapters, buy links) -->
+              <a href={`/books/${book.id}/`} class="card-link">
+                Explore book &amp; details →
+              </a>
             </div>
+
           </article>
         ))}
       </div>
 
+      <!-- Footer Note -->
       <div class="empty-note" style="margin-top:24px">
         Book purchase links will open directly on Google Play Books, Amazon or the publisher platform. There will be no cart or checkout on this website.
       </div>
