@@ -1,9 +1,11 @@
-// Import helpers from Astro to define content collections and validate fields (z = Zod)
+// Import helpers from Astro to define content collections and validate fields
 import { defineCollection, z } from 'astro:content';
-// Import the glob loader so Astro can automatically scan folders for .md files
+// Import the glob loader so Astro automatically scans folders for .md files
 import { glob } from 'astro/loaders';
 
-// 1. Existing Blog Collection (untouched)
+// ==========================================================================
+// 1. BLOG COLLECTION (Unchanged)
+// ==========================================================================
 const blog = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/content/blog' }),
   schema: z.object({
@@ -18,20 +20,36 @@ const blog = defineCollection({
   }),
 });
 
-// 2. Updated Books Collection matching your exact book structure
+// ==========================================================================
+// 2. BOOKS COLLECTION (Supports Categories, Image Galleries & Multiple Buy Links)
+// ==========================================================================
 const books = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/content/books' }),
   schema: z.object({
     title: z.string(),                        // Book title
-    description: z.string(),                  // Short description shown on cards & SEO
-    label: z.string(),                        // Category badge (e.g., "Class 8 Mathematics")
-    cover: z.string().optional(),             // Optional: If blank, shows the clean text placeholder cover!
-    amazonUrl: z.string().optional(),         // Optional: Direct Amazon link
-    googlePlayUrl: z.string().optional(),     // Optional: Direct Google Play Books link
-    order: z.number().default(1),             // Controls which book appears first (1, 2, 3...)
+    description: z.string(),                  // Short summary shown on cards & SEO
+    
+    // Main section on the /books/ page (e.g., "Math Education", "Story Books", "Facts Books", "Coloring Books")
+    category: z.string().default('Math Education'),
+    
+    // Small tag above the title (e.g., "Class 8 Mathematics", "Ages 7–11", "Wildlife Facts")
+    label: z.string(),
+    
+    // Path to the main cover image inside public/images/books/<book-folder>/
+    cover: z.string().optional(),
+    
+    // List of 5–6 interior page images to display in the preview gallery
+    gallery: z.array(z.string()).default([]),
+    
+    // Optional Purchase / Read Links (Only buttons with links filled in will appear!)
+    amazonUrl: z.string().optional(),
+    googlePlayUrl: z.string().optional(),
+    websiteUrl: z.string().optional(),        // Link to read/download on PurpleTheta or another site
+    websiteLabel: z.string().default('Read on PurpleTheta'),
+    
+    order: z.number().default(1),             // Controls display order within a category (1, 2, 3...)
     draft: z.boolean().default(false),        // Set to true to hide an unfinished book
   }),
 });
 
-// Export both collections so Astro recognizes getCollection('blog') and getCollection('books')
 export const collections = { blog, books };
