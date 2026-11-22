@@ -14,18 +14,28 @@ export async function getStaticPaths() {
 const { book } = Astro.props;
 const { Content } = await render(book);
 
-// Check if at least one buy/read link or gallery image is present
+// Check if buy/read links or gallery images exist
 const hasLinks = book.data.amazonUrl || book.data.googlePlayUrl || book.data.websiteUrl;
 const hasGallery = book.data.gallery && book.data.gallery.length > 0;
+
+// Build compact "At a Glance" items only for fields that are filled in
+const bookSpecs = [
+  book.data.readingAge ? { label: 'Reading age', value: String(book.data.readingAge) } : null,
+  book.data.pages ? { label: 'Print length', value: `${book.data.pages}`.toLowerCase().includes('page') ? String(book.data.pages) : `${book.data.pages} pages` } : null,
+  book.data.format ? { label: 'Format', value: String(book.data.format) } : null,
+  book.data.language ? { label: 'Language', value: String(book.data.language) } : null,
+  book.data.dimensions ? { label: 'Dimensions', value: String(book.data.dimensions) } : null,
+  book.data.publishDate ? { label: 'Publication date', value: String(book.data.publishDate) } : null,
+].filter((item): item is { label: string; value: string } => item !== null);
 ---
 
 <BaseLayout title={book.data.title} description={book.data.description}>
   <!-- ======================================================================
-       1. TOP BOOK SHOWCASE (Kept as-is: Cover + Title + Buy/Read Links)
+       1. TOP BOOK SHOWCASE (Cover + Title + Buy Links + Compact Specs Strip)
        ====================================================================== -->
   <section class="page-hero">
     <div class="wrap">
-      <!-- Top navigation breadcrumb back to Books page -->
+      <!-- Top breadcrumb link back to Books page -->
       <nav class="breadcrumbs" aria-label="Breadcrumb">
         <a href="/books/">← Back to all books</a>
         <span> · {book.data.category}</span>
@@ -44,7 +54,7 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
           )}
         </div>
 
-        <!-- Right column: Category badges, title, summary, and purchase links -->
+        <!-- Right column: Badges, Title, Intro, Buy Buttons & Compact Book Specs -->
         <div class="book-detail-meta">
           <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px;">
             <span class="pill">{book.data.category}</span>
@@ -56,7 +66,7 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
           <h1 class="book-detail-title">{book.data.title}</h1>
           <p class="book-detail-summary">{book.data.description}</p>
 
-          <!-- Buy / Where to Read buttons (only shown if links exist in the .md file) -->
+          <!-- Purchase & Reading Links -->
           {hasLinks && (
             <div class="buy-box">
               <p class="buy-box-label">Get this book:</p>
@@ -79,22 +89,33 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
               </div>
             </div>
           )}
+
+          <!-- Compact Amazon-style "At a Glance" Book Specs just below intro -->
+          {bookSpecs.length > 0 && (
+            <div class="book-specs-strip" aria-label="Book specifications">
+              {bookSpecs.map((spec) => (
+                <div class="spec-item">
+                  <span class="spec-label">{spec.label}</span>
+                  <span class="spec-value">{spec.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
   </section>
 
   <!-- ======================================================================
-       2. LOWER SECTION: AMAZON-STYLE IMAGE VIEWER (LEFT) + ABOUT BOOK (RIGHT)
+       2. LOWER SECTION: TIGHT IMAGE VIEWER (LEFT) + COLLAPSIBLE ABOUT (RIGHT)
        ====================================================================== -->
   <section class="section">
     <div class="wrap">
       <div class:list={['book-split-layout', !hasGallery && 'no-gallery']}>
-        
-        <!-- LEFT COLUMN: One large image + bottom thumbnail strip (no heading above) -->
+
+        <!-- LEFT COLUMN: Clean single preview image (no side blank space) + bottom thumbnails -->
         {hasGallery && (
           <div class="amazon-viewer" data-gallery={JSON.stringify(book.data.gallery)}>
-            <!-- Main large preview image (click to open larger lightbox) -->
             <div class="amazon-main-frame">
               <button
                 type="button"
@@ -110,7 +131,7 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
               </button>
             </div>
 
-            <!-- Small thumbnail boxes below the large image -->
+            <!-- Small thumbnail boxes below the preview image -->
             <div class="amazon-thumbs" role="list" aria-label="Page thumbnails">
               {book.data.gallery.map((thumbSrc, idx) => (
                 <button
@@ -130,10 +151,20 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
           </div>
         )}
 
-        <!-- RIGHT COLUMN: About This Book description area -->
+        <!-- RIGHT COLUMN: About This Book with "Read more..." toggle when long -->
         <div class="book-about-column prose">
           <h2>About This Book</h2>
-          <Content />
+          <div id="about-body" class="about-text-box">
+            <Content />
+          </div>
+          <button
+            type="button"
+            id="about-toggle-btn"
+            class="read-more-link"
+            hidden
+          >
+            Read more...
+          </button>
         </div>
 
       </div>
@@ -145,7 +176,7 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
        ====================================================================== -->
   <dialog id="page-lightbox" class="lightbox-modal">
     <div class="lightbox-topbar">
-      <span id="lightbox-counter" class="lightbox-counter">Image 1</span>
+      <span id="lightbox-counter" class="lightbox-counter">Preview 1</span>
       <button type="button" id="lightbox-close" class="lightbox-close" aria-label="Close preview">
         ✕ Close
       </button>
@@ -169,7 +200,7 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
   </dialog>
 
   <!-- ======================================================================
-       4. STYLES FOR TOP SHOWCASE, AMAZON THUMBNAIL VIEWER & LIGHTBOX
+       4. STYLES
        ====================================================================== -->
   <style>
     /* Top Book Cover + Metadata Layout */
@@ -218,15 +249,15 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
       font-weight: 800;
       letter-spacing: -1.5px;
       line-height: 1.12;
-      margin: 0 0 16px;
+      margin: 0 0 14px;
     }
 
     .book-detail-summary {
-      font-size: 17.5px;
+      font-size: 17px;
       color: var(--muted);
       line-height: 1.65;
-      margin: 0 0 28px;
-      max-width: 620px;
+      margin: 0 0 22px;
+      max-width: 680px;
     }
 
     /* Buy / Where to Read Box */
@@ -234,17 +265,17 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
       background: #fff;
       border: 1px solid var(--purple-border);
       border-radius: 10px;
-      padding: 20px 24px;
+      padding: 18px 22px;
       box-shadow: var(--shadow-sm);
     }
 
     .buy-box-label {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
       color: var(--muted);
-      margin: 0 0 12px;
+      margin: 0 0 10px;
     }
 
     .buy-buttons {
@@ -266,10 +297,41 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
       border-color: var(--purple);
     }
 
-    /* Lower Two-Column Split: Left Image + Thumbnails, Right About This Book */
+    /* Compact Amazon-style "At a Glance" Book Specs Row */
+    .book-specs-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px 28px;
+      margin-top: 20px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    .spec-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 96px;
+    }
+
+    .spec-label {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    .spec-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      line-height: 1.35;
+    }
+
+    /* Lower Two-Column Split: Image Column Sized to Fit Content + Wide About Column */
     .book-split-layout {
       display: grid;
-      grid-template-columns: 1fr 1.15fr;
+      grid-template-columns: auto 1fr;
       gap: 48px;
       align-items: start;
     }
@@ -279,33 +341,38 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
       max-width: 780px;
     }
 
-    /* Amazon-style large image box */
+    .amazon-viewer {
+      width: fit-content;
+      max-width: 100%;
+    }
+
+    /* Frame hugs the image cleanly so portrait pages have zero extra side blank space */
     .amazon-main-frame {
+      display: inline-block;
       border: 1px solid var(--line);
       border-radius: 10px;
-      background: #fff;
+      background: var(--soft);
       overflow: hidden;
       box-shadow: var(--shadow-sm);
     }
 
     .amazon-main-btn {
       display: block;
-      width: 100%;
       padding: 0;
       border: 0;
-      background: #fff;
+      background: transparent;
       cursor: zoom-in;
     }
 
     .amazon-main-btn img {
-      width: 100%;
-      aspect-ratio: 4 / 3;
-      object-fit: contain;
-      background: #fff;
       display: block;
+      width: auto;
+      max-width: 100%;
+      max-height: 430px;
+      height: auto;
     }
 
-    /* Row of small thumbnail boxes underneath the big image */
+    /* Row of small thumbnail boxes underneath the preview image */
     .amazon-thumbs {
       display: flex;
       flex-wrap: wrap;
@@ -314,8 +381,8 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
     }
 
     .amazon-thumb-btn {
-      width: 64px;
-      height: 52px;
+      width: 58px;
+      height: 66px;
       padding: 2px;
       border: 1.5px solid var(--line);
       border-radius: 6px;
@@ -331,7 +398,6 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
       border-color: #b79fe3;
     }
 
-    /* Highlighted active thumbnail (similar to Amazon's active border) */
     .amazon-thumb-btn.active {
       opacity: 1;
       border-color: var(--purple);
@@ -347,9 +413,40 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
       display: block;
     }
 
-    /* About This Book heading alignment on the right */
+    /* About This Book column & collapsible "Read more..." behavior */
+    .book-about-column {
+      min-width: 0;
+      max-width: 720px;
+    }
+
     .book-about-column h2 {
       margin-top: 0;
+    }
+
+    .about-text-box.collapsed {
+      max-height: 360px;
+      overflow: hidden;
+      position: relative;
+      mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+    }
+
+    .read-more-link {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: var(--purple);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .read-more-link:hover {
+      color: var(--purple-dark);
+      text-decoration: underline;
     }
 
     /* Lightbox Popup Styles */
@@ -442,6 +539,18 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
         grid-template-columns: 1fr;
         gap: 36px;
       }
+      .amazon-viewer {
+        width: 100%;
+      }
+      .amazon-main-frame {
+        display: block;
+      }
+      .amazon-main-btn {
+        width: 100%;
+      }
+      .amazon-main-btn img {
+        margin-inline: auto;
+      }
     }
 
     @media (max-width: 780px) {
@@ -456,7 +565,7 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
   </style>
 
   <!-- ======================================================================
-       5. THUMBNAIL SWITCHING & LIGHTBOX SCRIPT
+       5. THUMBNAIL SWITCHING, LIGHTBOX & "READ MORE..." SCRIPT
        ====================================================================== -->
   <script>
     const viewer = document.querySelector('.amazon-viewer');
@@ -501,7 +610,6 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
       }
     }
 
-    // Clicking any bottom thumbnail updates the large image
     thumbButtons.forEach((btn) => {
       btn.addEventListener('click', () => {
         const idx = Number(btn.getAttribute('data-index') || 0);
@@ -509,7 +617,6 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
       });
     });
 
-    // Clicking the large image opens the bigger lightbox view
     openZoomBtn?.addEventListener('click', () => {
       if (modal && images.length > 0) {
         selectImage(currentIndex);
@@ -517,7 +624,6 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
       }
     });
 
-    // Lightbox arrow & close handlers
     lbPrev?.addEventListener('click', () => selectImage(currentIndex - 1));
     lbNext?.addEventListener('click', () => selectImage(currentIndex + 1));
     closeBtn?.addEventListener('click', () => modal?.close());
@@ -525,11 +631,27 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
       if (e.target === modal) modal.close();
     });
 
-    // Keyboard Left/Right navigation when lightbox is open
     document.addEventListener('keydown', (e) => {
       if (images.length <= 1 || !modal?.open) return;
       if (e.key === 'ArrowLeft') selectImage(currentIndex - 1);
       if (e.key === 'ArrowRight') selectImage(currentIndex + 1);
     });
+
+    // Collapsible "Read more..." behavior for long "About This Book" content
+    const aboutBox = document.getElementById('about-body');
+    const aboutToggle = document.getElementById('about-toggle-btn');
+
+    if (aboutBox && aboutToggle) {
+      // Only collapse if content is taller than the preview threshold
+      if (aboutBox.scrollHeight > 410) {
+        aboutBox.classList.add('collapsed');
+        aboutToggle.hidden = false;
+
+        aboutToggle.addEventListener('click', () => {
+          const isCollapsed = aboutBox.classList.toggle('collapsed');
+          aboutToggle.textContent = isCollapsed ? 'Read more...' : 'Show less';
+        });
+      }
+    }
   </script>
 </BaseLayout>
