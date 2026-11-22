@@ -149,7 +149,7 @@ const books = (await getCollection('books', ({ data }) => !data.draft)).slice(0,
               <div class="book-info">
                 <h3>{book.data.title}</h3>
                 <p>{book.data.description}</p>
-                <a class="card-link" href={`/books/${book.slug}/`}>View book →</a>
+                <a class="card-link" href={`/books/${book.id}/`}>View book →</a>
               </div>
             </article>
           ))}
