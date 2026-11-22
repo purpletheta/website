@@ -4,73 +4,126 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 // Import getCollection to fetch all Markdown files from 'src/content/books/'
 import { getCollection } from 'astro:content';
 
-// 1. Fetch all non-draft books from the 'books' collection
-const allBooks = await getCollection('books', ({ data }) => !data.draft);
+// 1. Fetch all published books and sort by 'order'
+const allBooks = (await getCollection('books', ({ data }) => !data.draft))
+  .sort((a, b) => a.data.order - b.data.order);
 
-// 2. Sort the books using the 'order' number (1 appears before 2, etc.)
-const books = allBooks.sort((a, b) => a.data.order - b.data.order);
+// 2. Define the preferred order of book sections on the main Books page
+const preferredOrder = [
+  'Math Education',
+  'Story Books',
+  'Facts Books',
+  'Coloring Books',
+];
+
+// 3. Automatically find all categories used in your books (preserving preferred order)
+const usedCategories = [...new Set(allBooks.map((b) => b.data.category))];
+const sortedCategories = [
+  ...preferredOrder.filter((cat) => usedCategories.includes(cat)),
+  ...usedCategories.filter((cat) => !preferredOrder.includes(cat)),
+];
 ---
 
 <BaseLayout 
   title="Books" 
-  description="Discover PurpleTheta e-books and reading resources. Find book descriptions, previews and links to Google Play Books or Amazon."
+  description="Discover PurpleTheta e-books, story books, facts books, and math learning resources."
 >
-  <!-- Top Hero Banner (kept identical to your original design) -->
+  <!-- ======================================================================
+       1. PAGE HEADER & QUICK CATEGORY JUMP LINKS
+       ====================================================================== -->
   <section class="page-hero">
     <div class="wrap page-heading">
-      <p class="eyebrow">Read · Learn</p>
-      <h1>Books &amp; Resources</h1>
-      <p>Books that make ideas approachable, encourage curiosity and help readers explore concepts in more depth.</p>
+      <p class="eyebrow">Read · Explore · Discover</p>
+      <h1>Books & Learning Resources</h1>
+      <p>
+        Thoughtfully crafted books that make concepts approachable, spark curiosity, and turn learning into a joy.
+      </p>
+
+      <!-- Quick Category Filter Pills (Clicking scrolls smoothly to that section) -->
+      {sortedCategories.length > 1 && (
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px;">
+          {sortedCategories.map((category) => (
+            <a
+              href={`#${category.toLowerCase().replace(/\s+/g, '-')}`}
+              class="pill"
+              style="padding: 6px 14px; font-size: 13px; border: 1px solid var(--purple-border);"
+            >
+              {category}
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   </section>
 
-  <!-- Main Books Grid -->
-  <section class="section">
-    <div class="wrap">
-      <div class="book-grid">
-        {books.map(book => (
-          <article class="book-card">
-            
-            <!-- Clickable Book Cover linking to /books/<book-id>/ -->
-            <a href={`/books/${book.id}/`} class="book-cover" style={book.data.cover ? 'padding: 0; display: block;' : 'display: flex;'}>
-              {book.data.cover ? (
-                /* Show the cover image if 'cover' is provided in the Markdown file */
-                <img src={book.data.cover} alt={`Cover of ${book.data.title}`} />
-              ) : (
-                /* Fallback text cover if no cover image is uploaded yet */
-                <div>
-                  <small style="display:block;font-size:10px;letter-spacing:1.2px;font-weight:500;margin-bottom:6px">PURPLETHETA</small>
-                  {book.data.title}
-                </div>
-              )}
-            </a>
+  <!-- ======================================================================
+       2. CATEGORIZED BOOK SECTIONS (One section per book type)
+       ====================================================================== -->
+  {sortedCategories.map((category) => {
+    const categoryBooks = allBooks.filter((b) => b.data.category === category);
+    const sectionId = category.toLowerCase().replace(/\s+/g, '-');
 
-            <!-- Book Details -->
-            <div class="book-info">
-              <div class="article-meta">{book.data.label}</div>
-              
-              <!-- Clickable Title linking to the individual book page -->
-              <h3>
-                <a href={`/books/${book.id}/`} style="text-decoration: none; color: inherit;">
-                  {book.data.title}
-                </a>
-              </h3>
-              
-              <p>{book.data.description}</p>
-              
-              <!-- Link to open the full book page (preview, chapters, buy links) -->
-              <a href={`/books/${book.id}/`} class="card-link">
-                Explore book &amp; details →
-              </a>
+    return (
+      <section id={sectionId} class="section">
+        <div class="wrap">
+          <!-- Section Title & Book Count -->
+          <div class="section-head">
+            <div>
+              <h2>{category}</h2>
+              <p>{categoryBooks.length} {categoryBooks.length === 1 ? 'book' : 'books'} available</p>
             </div>
+          </div>
 
-          </article>
-        ))}
-      </div>
+          <!-- Books Grid for this Category -->
+          <div class="book-grid">
+            {categoryBooks.map((book) => (
+              <article class="book-card">
+                <!-- Clickable Book Cover -->
+                <a
+                  href={`/books/${book.id}/`}
+                  class="book-cover"
+                  style={book.data.cover ? 'padding: 0; display: block;' : 'display: flex;'}
+                >
+                  {book.data.cover ? (
+                    <img src={book.data.cover} alt={`Cover of ${book.data.title}`} loading="lazy" />
+                  ) : (
+                    <div>
+                      <small style="display:block;font-size:10px;letter-spacing:1.2px;font-weight:500;margin-bottom:6px">
+                        PURPLETHETA
+                      </small>
+                      {book.data.title}
+                    </div>
+                  )}
+                </a>
 
-      <!-- Footer Note -->
-      <div class="empty-note" style="margin-top:24px">
-        Book purchase links will open directly on Google Play Books, Amazon or the publisher platform. There will be no cart or checkout on this website.
+                <!-- Book Summary & Link -->
+                <div class="book-info">
+                  <div class="article-meta">{book.data.label}</div>
+                  <h3>
+                    <a href={`/books/${book.id}/`} style="text-decoration: none; color: inherit;">
+                      {book.data.title}
+                    </a>
+                  </h3>
+                  <p>{book.data.description}</p>
+                  <a href={`/books/${book.id}/`} class="card-link">
+                    Look inside & details →
+                  </a>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  })}
+
+  <!-- ======================================================================
+       3. PUBLISHING NOTE
+       ====================================================================== -->
+  <section class="section" style="padding-top: 0; border-top: 0;">
+    <div class="wrap">
+      <div class="empty-note">
+        Book purchase links open directly on Amazon, Google Play Books, or the publisher platform. There is no cart or checkout on this website.
       </div>
     </div>
   </section>
