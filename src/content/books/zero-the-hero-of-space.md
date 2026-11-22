@@ -18,7 +18,6 @@ readingAge: "7 - 11 years"
 pages: 44
 format: "Ebook"
 language: "English"
-dimensions: " "
 publishDate: "October 2026"
 order: 2
 draft: false
