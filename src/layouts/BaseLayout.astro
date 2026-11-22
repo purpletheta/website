@@ -1,6 +1,16 @@
 ---
-const { title = 'PurpleTheta', description = 'Mathematics, made meaningful. Learn mathematics, explore ideas and discover useful knowledge with PurpleTheta.', canonical = '', } = Astro.props;
+/* ==========================================================================
+   PAGE SETTINGS & NAVIGATION LINKS
+   To add a new link to the top menu, simply add a new line inside 'nav' below.
+   ========================================================================== */
+const {
+  title = 'PurpleTheta',
+  description = 'Mathematics, made meaningful. Learn mathematics, explore ideas and discover useful knowledge with PurpleTheta.',
+  canonical = '',
+} = Astro.props;
+
 const currentPath = Astro.url.pathname;
+
 const nav = [
   { label: 'Math', href: '/math/' },
   { label: 'Blogs', href: '/blog/' },
@@ -8,54 +18,128 @@ const nav = [
   { label: 'Books', href: '/books/' },
   { label: 'About', href: '/about/' },
 ];
+
 const canonicalUrl = canonical || new URL(currentPath, Astro.site).toString();
 ---
+
 <!doctype html>
 <html lang="en">
   <head>
+    <!-- Basic Page Metadata & SEO -->
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title} | PurpleTheta</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalUrl} />
-    <meta name="theme-color" content="#ffffff" />
+    <meta name="theme-color" content="#6b46c1" />
+
+    <!-- Social Media Sharing Preview (OpenGraph & Twitter) -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="PurpleTheta" />
     <meta property="og:title" content={`${title} | PurpleTheta`} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl} />
     <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Favicon & Main Stylesheet -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/styles/global.css" />
   </head>
+
   <body>
+    <!-- ====================================================================
+         TOP NAVIGATION BAR (Sticky across all pages)
+         ==================================================================== -->
     <header class="site-header">
       <div class="header-inner wrap">
+        <!-- Brand Logo -->
         <a class="brand" href="/" aria-label="PurpleTheta home">
           <span class="brand-mark" aria-hidden="true">θ</span>
           <span class="brand-name">PurpleTheta</span>
         </a>
+
+        <!-- Desktop & Mobile Menu Links -->
         <nav class="main-nav" aria-label="Main navigation">
-          {nav.map((item) => <a class:list={["nav-link", currentPath.startsWith(item.href) && "active"]} href={item.href}>{item.label}</a>)}
+          {nav.map((item) => (
+            <a
+              class:list={['nav-link', currentPath.startsWith(item.href) && 'active']}
+              href={item.href}
+            >
+              {item.label}
+            </a>
+          ))}
         </nav>
-        <a class="header-cta" href="/math/">Explore Math <span aria-hidden="true">↗</span></a>
-        <button class="menu-toggle" aria-label="Toggle navigation" aria-expanded="false"><span></span><span></span></button>
+
+        <!-- Right-side Quick Action Button -->
+        <a class="header-cta" href="/math/">
+          Explore Math <span aria-hidden="true">↗</span>
+        </a>
+
+        <!-- Mobile Hamburger Button (Visible only on phones) -->
+        <button class="menu-toggle" aria-label="Toggle navigation" aria-expanded="false">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
       </div>
     </header>
-    <main><slot /></main>
+
+    <!-- ====================================================================
+         MAIN PAGE CONTENT (Every individual page's content loads here)
+         ==================================================================== -->
+    <main>
+      <slot />
+    </main>
+
+    <!-- ====================================================================
+         SITE FOOTER
+         ==================================================================== -->
     <footer class="site-footer">
       <div class="wrap footer-top">
-        <div class="footer-brand"><a class="brand" href="/"><span class="brand-mark">θ</span><span class="brand-name">PurpleTheta</span></a><p>Mathematics, made meaningful.<br />Learn. Explore. Understand.</p></div>
-        <div class="footer-links"><div><strong>Explore</strong><a href="/math/">Mathematics</a><a href="/blog/">Blogs</a><a href="/videos/">Videos</a><a href="/books/">Books</a></div><div><strong>About</strong><a href="/about/">About PurpleTheta</a><a href="/contact/">Contact</a><a href="/privacy/">Privacy</a></div></div>
+        <!-- Brand Summary -->
+        <div class="footer-brand">
+          <a class="brand" href="/">
+            <span class="brand-mark">θ</span>
+            <span class="brand-name">PurpleTheta</span>
+          </a>
+          <p>
+            Mathematics, made meaningful.<br />
+            Learn. Explore. Understand.
+          </p>
+        </div>
+
+        <!-- Footer Link Columns -->
+        <div class="footer-links">
+          <div>
+            <strong>Explore</strong>
+            <a href="/math/">Mathematics</a>
+            <a href="/blog/">Blogs</a>
+            <a href="/videos/">Videos</a>
+            <a href="/books/">Books</a>
+          </div>
+          <div>
+            <strong>About</strong>
+            <a href="/about/">About PurpleTheta</a>
+            <a href="/contact/">Contact</a>
+            <a href="/privacy/">Privacy</a>
+          </div>
+        </div>
       </div>
-      <div class="wrap footer-bottom"><span>© {new Date().getFullYear()} PurpleTheta</span><span>Made for curious minds.</span></div>
+
+      <!-- Copyright Bar -->
+      <div class="wrap footer-bottom">
+        <span>© {new Date().getFullYear()} PurpleTheta</span>
+        <span>Made for curious minds.</span>
+      </div>
     </footer>
+
+    <!-- Mobile Menu Toggle Script -->
     <script>
       const toggle = document.querySelector('.menu-toggle');
       const nav = document.querySelector('.main-nav');
       toggle?.addEventListener('click', () => {
-        const open = nav.classList.toggle('open');
-        toggle.setAttribute('aria-expanded', String(open));
+        const open = nav?.classList.toggle('open');
+        toggle.setAttribute('aria-expanded', String(Boolean(open)));
       });
     </script>
   </body>
