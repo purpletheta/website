@@ -20,7 +20,7 @@ format: "Ebook & Paperback"
 language: "English"
 dimensions: "6 x 9 inches"
 publishDate: "October 2026"
-order: 1
+order: 2
 draft: false
 ---
 
