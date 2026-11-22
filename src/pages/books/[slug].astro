@@ -2,7 +2,7 @@
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 
-// Generate a static page for every book in src/content/books/
+// Generate a static page for every book inside src/content/books/
 export async function getStaticPaths() {
   const books = await getCollection('books');
   return books.map((book) => ({
@@ -14,25 +14,25 @@ export async function getStaticPaths() {
 const { book } = Astro.props;
 const { Content } = await render(book);
 
-// Check if buy/read links or gallery images exist
+// Check if at least one buy/read link or gallery image is present
 const hasLinks = book.data.amazonUrl || book.data.googlePlayUrl || book.data.websiteUrl;
 const hasGallery = book.data.gallery && book.data.gallery.length > 0;
 ---
 
 <BaseLayout title={book.data.title} description={book.data.description}>
   <!-- ======================================================================
-       1. TOP BOOK SHOWCASE (Cover + Title + Buy/Read Links)
+       1. TOP BOOK SHOWCASE (Kept as-is: Cover + Title + Buy/Read Links)
        ====================================================================== -->
   <section class="page-hero">
     <div class="wrap">
-      <!-- Breadcrumb Navigation -->
+      <!-- Top navigation breadcrumb back to Books page -->
       <nav class="breadcrumbs" aria-label="Breadcrumb">
         <a href="/books/">← Back to all books</a>
         <span> · {book.data.category}</span>
       </nav>
 
       <div class="book-detail-hero">
-        <!-- Left Column: Main Book Cover -->
+        <!-- Left column: Main book cover -->
         <div class="book-detail-cover">
           {book.data.cover ? (
             <img src={book.data.cover} alt={`Cover of ${book.data.title}`} />
@@ -44,7 +44,7 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
           )}
         </div>
 
-        <!-- Right Column: Metadata, Summary & Buy Buttons -->
+        <!-- Right column: Category badges, title, summary, and purchase links -->
         <div class="book-detail-meta">
           <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px;">
             <span class="pill">{book.data.category}</span>
@@ -56,7 +56,7 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
           <h1 class="book-detail-title">{book.data.title}</h1>
           <p class="book-detail-summary">{book.data.description}</p>
 
-          <!-- Purchase & Reading Links -->
+          <!-- Buy / Where to Read buttons (only shown if links exist in the .md file) -->
           {hasLinks && (
             <div class="buy-box">
               <p class="buy-box-label">Get this book:</p>
@@ -85,84 +85,54 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
   </section>
 
   <!-- ======================================================================
-       2. TWO-COLUMN SPLIT: LOOK INSIDE CAROUSEL (LEFT) + ABOUT THIS BOOK (RIGHT)
+       2. LOWER SECTION: AMAZON-STYLE IMAGE VIEWER (LEFT) + ABOUT BOOK (RIGHT)
        ====================================================================== -->
   <section class="section">
     <div class="wrap">
       <div class:list={['book-split-layout', !hasGallery && 'no-gallery']}>
         
-        <!-- LEFT COLUMN: Single-Frame Image Slider with Arrows & Dots -->
+        <!-- LEFT COLUMN: One large image + bottom thumbnail strip (no heading above) -->
         {hasGallery && (
-          <div class="book-preview-column">
-            <h2 class="split-heading">Look Inside the Book</h2>
-            <p class="split-sub">Use arrows or dots to flip pages. Click image to zoom.</p>
+          <div class="amazon-viewer" data-gallery={JSON.stringify(book.data.gallery)}>
+            <!-- Main large preview image (click to open larger lightbox) -->
+            <div class="amazon-main-frame">
+              <button
+                type="button"
+                id="viewer-open-zoom"
+                class="amazon-main-btn"
+                aria-label="Click to view larger image"
+              >
+                <img
+                  id="viewer-main-img"
+                  src={book.data.gallery[0]}
+                  alt={`${book.data.title} preview 1`}
+                />
+              </button>
+            </div>
 
-            <div class="carousel-card" data-gallery={JSON.stringify(book.data.gallery)}>
-              <!-- Main Image Viewer -->
-              <div class="carousel-stage">
+            <!-- Small thumbnail boxes below the large image -->
+            <div class="amazon-thumbs" role="list" aria-label="Page thumbnails">
+              {book.data.gallery.map((thumbSrc, idx) => (
                 <button
                   type="button"
-                  id="carousel-open-zoom"
-                  class="carousel-image-btn"
-                  aria-label="Click to view full-screen page"
+                  class:list={['amazon-thumb-btn', idx === 0 && 'active']}
+                  data-index={idx}
+                  aria-label={`Select preview image ${idx + 1}`}
                 >
                   <img
-                    id="carousel-active-img"
-                    src={book.data.gallery[0]}
-                    alt={`${book.data.title} - Page 1`}
+                    src={thumbSrc}
+                    alt={`${book.data.title} thumbnail ${idx + 1}`}
+                    loading="lazy"
                   />
-                  <span class="zoom-hint">🔍 Click to enlarge</span>
                 </button>
-
-                <!-- Left & Right Navigation Arrows (shown when more than 1 image) -->
-                {book.data.gallery.length > 1 && (
-                  <>
-                    <button
-                      type="button"
-                      id="carousel-prev"
-                      class="carousel-arrow prev"
-                      aria-label="Previous sample page"
-                    >
-                      ‹
-                    </button>
-                    <button
-                      type="button"
-                      id="carousel-next"
-                      class="carousel-arrow next"
-                      aria-label="Next sample page"
-                    >
-                      ›
-                    </button>
-                  </>
-                )}
-              </div>
-
-              <!-- Bottom Controls: Page Counter + Navigation Dots -->
-              <div class="carousel-footer">
-                <span id="carousel-counter" class="carousel-counter">
-                  Page 1 of {book.data.gallery.length}
-                </span>
-
-                {book.data.gallery.length > 1 && (
-                  <div class="carousel-dots" role="tablist" aria-label="Sample pages">
-                    {book.data.gallery.map((_, idx) => (
-                      <button
-                        type="button"
-                        class:list={['carousel-dot', idx === 0 && 'active']}
-                        data-index={idx}
-                        aria-label={`Go to page ${idx + 1}`}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
+              ))}
             </div>
           </div>
         )}
 
-        <!-- RIGHT COLUMN: About This Book (Your 3–4 paragraphs from Markdown) -->
+        <!-- RIGHT COLUMN: About This Book description area -->
         <div class="book-about-column prose">
-          <h2 class="split-heading" style="margin-top: 0;">About This Book</h2>
+          <h2>About This Book</h2>
           <Content />
         </div>
 
@@ -171,11 +141,11 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
   </section>
 
   <!-- ======================================================================
-       3. FULLSCREEN LIGHTBOX POPUP (With Next/Previous Page Navigation)
+       3. FULLSCREEN LIGHTBOX (Opens when clicking the large preview image)
        ====================================================================== -->
   <dialog id="page-lightbox" class="lightbox-modal">
     <div class="lightbox-topbar">
-      <span id="lightbox-counter" class="lightbox-counter">Page 1</span>
+      <span id="lightbox-counter" class="lightbox-counter">Image 1</span>
       <button type="button" id="lightbox-close" class="lightbox-close" aria-label="Close preview">
         ✕ Close
       </button>
@@ -183,15 +153,15 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
 
     <div class="lightbox-stage">
       {hasGallery && book.data.gallery.length > 1 && (
-        <button type="button" id="lightbox-prev" class="lightbox-arrow prev" aria-label="Previous page">
+        <button type="button" id="lightbox-prev" class="lightbox-arrow prev" aria-label="Previous image">
           ‹
         </button>
       )}
 
-      <img id="lightbox-img" src="" alt="Book page preview" />
+      <img id="lightbox-img" src="" alt="Enlarged book preview" />
 
       {hasGallery && book.data.gallery.length > 1 && (
-        <button type="button" id="lightbox-next" class="lightbox-arrow next" aria-label="Next page">
+        <button type="button" id="lightbox-next" class="lightbox-arrow next" aria-label="Next image">
           ›
         </button>
       )}
@@ -199,7 +169,7 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
   </dialog>
 
   <!-- ======================================================================
-       4. STYLES FOR BOOK DETAIL, CAROUSEL & LIGHTBOX
+       4. STYLES FOR TOP SHOWCASE, AMAZON THUMBNAIL VIEWER & LIGHTBOX
        ====================================================================== -->
   <style>
     /* Top Book Cover + Metadata Layout */
@@ -296,10 +266,10 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
       border-color: var(--purple);
     }
 
-    /* Two-Column Split: Carousel (Left) + About This Book (Right) */
+    /* Lower Two-Column Split: Left Image + Thumbnails, Right About This Book */
     .book-split-layout {
       display: grid;
-      grid-template-columns: 1fr 1.1fr;
+      grid-template-columns: 1fr 1.15fr;
       gap: 48px;
       align-items: start;
     }
@@ -309,147 +279,80 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
       max-width: 780px;
     }
 
-    .split-heading {
-      font-family: 'Manrope', sans-serif;
-      font-size: 26px;
-      font-weight: 800;
-      letter-spacing: -0.8px;
-      margin: 0 0 6px;
-    }
-
-    .split-sub {
-      font-size: 14px;
-      color: var(--muted);
-      margin: 0 0 18px;
-    }
-
-    /* Single-Frame Image Carousel Card */
-    .carousel-card {
-      background: var(--soft);
+    /* Amazon-style large image box */
+    .amazon-main-frame {
       border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 16px;
+      border-radius: 10px;
+      background: #fff;
+      overflow: hidden;
       box-shadow: var(--shadow-sm);
     }
 
-    .carousel-stage {
-      position: relative;
-      background: #fff;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      overflow: hidden;
-    }
-
-    .carousel-image-btn {
+    .amazon-main-btn {
       display: block;
       width: 100%;
       padding: 0;
       border: 0;
       background: #fff;
       cursor: zoom-in;
-      position: relative;
     }
 
-    .carousel-image-btn img {
+    .amazon-main-btn img {
       width: 100%;
       aspect-ratio: 4 / 3;
       object-fit: contain;
       background: #fff;
       display: block;
-      transition: transform 0.25s ease;
     }
 
-    .carousel-image-btn:hover img {
-      transform: scale(1.015);
-    }
-
-    .zoom-hint {
-      position: absolute;
-      bottom: 12px;
-      right: 12px;
-      background: rgba(30, 27, 38, 0.78);
-      color: #fff;
-      font-size: 11.5px;
-      font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 99px;
-      pointer-events: none;
-    }
-
-    /* Left & Right Slider Arrows */
-    .carousel-arrow {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      border: 1px solid var(--purple-border);
-      background: rgba(255, 255, 255, 0.94);
-      color: var(--purple);
-      font-size: 24px;
-      line-height: 1;
-      display: grid;
-      place-items: center;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(30, 27, 38, 0.14);
-      transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
-      z-index: 2;
-    }
-
-    .carousel-arrow:hover {
-      background: var(--purple);
-      color: #fff;
-      transform: translateY(-50%) scale(1.06);
-    }
-
-    .carousel-arrow.prev {
-      left: 12px;
-    }
-
-    .carousel-arrow.next {
-      right: 12px;
-    }
-
-    /* Carousel Footer: Page Counter + Dots */
-    .carousel-footer {
+    /* Row of small thumbnail boxes underneath the big image */
+    .amazon-thumbs {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-top: 14px;
-      padding: 0 4px;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
     }
 
-    .carousel-counter {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--muted);
-    }
-
-    .carousel-dots {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .carousel-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 99px;
-      border: 0;
-      padding: 0;
-      background: #d3c8e8;
+    .amazon-thumb-btn {
+      width: 64px;
+      height: 52px;
+      padding: 2px;
+      border: 1.5px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
       cursor: pointer;
-      transition: width 0.2s ease, background-color 0.2s ease;
+      overflow: hidden;
+      opacity: 0.78;
+      transition: border-color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
     }
 
-    .carousel-dot.active {
-      width: 24px;
-      background: var(--purple);
+    .amazon-thumb-btn:hover {
+      opacity: 1;
+      border-color: #b79fe3;
     }
 
-    /* Lightbox Popup with Arrows */
+    /* Highlighted active thumbnail (similar to Amazon's active border) */
+    .amazon-thumb-btn.active {
+      opacity: 1;
+      border-color: var(--purple);
+      box-shadow: 0 0 0 2px var(--purple-soft);
+      transform: translateY(-1px);
+    }
+
+    .amazon-thumb-btn img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 4px;
+      display: block;
+    }
+
+    /* About This Book heading alignment on the right */
+    .book-about-column h2 {
+      margin-top: 0;
+    }
+
+    /* Lightbox Popup Styles */
     .lightbox-modal {
       border: 0;
       border-radius: 12px;
@@ -553,23 +456,20 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
   </style>
 
   <!-- ======================================================================
-       5. INTERACTIVE SLIDER & LIGHTBOX SCRIPT
+       5. THUMBNAIL SWITCHING & LIGHTBOX SCRIPT
        ====================================================================== -->
   <script>
-    const carouselCard = document.querySelector('.carousel-card');
-    const images: string[] = carouselCard
-      ? JSON.parse(carouselCard.getAttribute('data-gallery') || '[]')
+    const viewer = document.querySelector('.amazon-viewer');
+    const images: string[] = viewer
+      ? JSON.parse(viewer.getAttribute('data-gallery') || '[]')
       : [];
 
     let currentIndex = 0;
 
-    // Carousel elements
-    const activeImg = document.getElementById('carousel-active-img') as HTMLImageElement | null;
-    const counterEl = document.getElementById('carousel-counter');
-    const dots = document.querySelectorAll('.carousel-dot');
-    const prevBtn = document.getElementById('carousel-prev');
-    const nextBtn = document.getElementById('carousel-next');
-    const openZoomBtn = document.getElementById('carousel-open-zoom');
+    // Main viewer & thumbnail elements
+    const mainImg = document.getElementById('viewer-main-img') as HTMLImageElement | null;
+    const thumbButtons = document.querySelectorAll('.amazon-thumb-btn');
+    const openZoomBtn = document.getElementById('viewer-open-zoom');
 
     // Lightbox elements
     const modal = document.getElementById('page-lightbox') as HTMLDialogElement | null;
@@ -579,61 +479,57 @@ const hasGallery = book.data.gallery && book.data.gallery.length > 0;
     const lbPrev = document.getElementById('lightbox-prev');
     const lbNext = document.getElementById('lightbox-next');
 
-    // Updates both the inline carousel and the fullscreen lightbox to the chosen page
-    function showSlide(newIndex: number) {
+    // Switch active image in both the main viewer and lightbox
+    function selectImage(index: number) {
       if (images.length === 0) return;
-      currentIndex = (newIndex + images.length) % images.length;
+      currentIndex = (index + images.length) % images.length;
 
-      if (activeImg) {
-        activeImg.src = images[currentIndex];
-        activeImg.alt = `Sample page ${currentIndex + 1}`;
+      if (mainImg) {
+        mainImg.src = images[currentIndex];
+        mainImg.alt = `Book preview ${currentIndex + 1}`;
       }
-      if (counterEl) {
-        counterEl.textContent = `Page ${currentIndex + 1} of ${images.length}`;
-      }
-      dots.forEach((dot, idx) => {
-        dot.classList.toggle('active', idx === currentIndex);
+
+      thumbButtons.forEach((btn, idx) => {
+        btn.classList.toggle('active', idx === currentIndex);
       });
 
       if (modalImg) {
         modalImg.src = images[currentIndex];
       }
       if (modalCounter) {
-        modalCounter.textContent = `Page ${currentIndex + 1} of ${images.length}`;
+        modalCounter.textContent = `Preview ${currentIndex + 1} of ${images.length}`;
       }
     }
 
-    // Inline carousel controls
-    prevBtn?.addEventListener('click', () => showSlide(currentIndex - 1));
-    nextBtn?.addEventListener('click', () => showSlide(currentIndex + 1));
-    dots.forEach((dot) => {
-      dot.addEventListener('click', () => {
-        const idx = Number(dot.getAttribute('data-index') || 0);
-        showSlide(idx);
+    // Clicking any bottom thumbnail updates the large image
+    thumbButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const idx = Number(btn.getAttribute('data-index') || 0);
+        selectImage(idx);
       });
     });
 
-    // Open fullscreen lightbox on image click
+    // Clicking the large image opens the bigger lightbox view
     openZoomBtn?.addEventListener('click', () => {
       if (modal && images.length > 0) {
-        showSlide(currentIndex);
+        selectImage(currentIndex);
         modal.showModal();
       }
     });
 
-    // Lightbox navigation & close controls
-    lbPrev?.addEventListener('click', () => showSlide(currentIndex - 1));
-    lbNext?.addEventListener('click', () => showSlide(currentIndex + 1));
+    // Lightbox arrow & close handlers
+    lbPrev?.addEventListener('click', () => selectImage(currentIndex - 1));
+    lbNext?.addEventListener('click', () => selectImage(currentIndex + 1));
     closeBtn?.addEventListener('click', () => modal?.close());
     modal?.addEventListener('click', (e) => {
       if (e.target === modal) modal.close();
     });
 
-    // Keyboard Left/Right arrow support when viewing pages
+    // Keyboard Left/Right navigation when lightbox is open
     document.addEventListener('keydown', (e) => {
-      if (images.length <= 1) return;
-      if (e.key === 'ArrowLeft') showSlide(currentIndex - 1);
-      if (e.key === 'ArrowRight') showSlide(currentIndex + 1);
+      if (images.length <= 1 || !modal?.open) return;
+      if (e.key === 'ArrowLeft') selectImage(currentIndex - 1);
+      if (e.key === 'ArrowRight') selectImage(currentIndex + 1);
     });
   </script>
 </BaseLayout>
