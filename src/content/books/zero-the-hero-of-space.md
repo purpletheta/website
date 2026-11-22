@@ -16,16 +16,29 @@ websiteUrl: "/math/"
 websiteLabel: "Explore Related Lessons"
 readingAge: "7 - 11 years"
 pages: 44
-format: "Ebook & Paperback"
+format: "Ebook"
 language: "English"
-dimensions: "6 x 9 inches"
+dimensions: 
 publishDate: "October 2026"
-order: 1
+order: 2
 draft: false
 ---
 
-Paragraph 1: Introduce what the book is about and why young readers or students will enjoy exploring it.
+What if the smallest-looking number in mathematics was actually one of the biggest heroes of science?
+Meet Zero—the tiny, mysterious number that looks like nothing but helps make sense of an enormous world.
 
-Paragraph 2: Highlight the key concepts, stories, or fun facts covered inside the chapters.
+In Zero: The Hero of Space, young readers ages 7–11 are invited on a fun and fascinating journey to discover why zero matters far more than they may have imagined.
 
-Paragraph 3: Mention who this book is ideal for (age group, grade level, parents, or teachers) and what makes the illustrations or explanations special.
+From rocket countdowns and giant distances in space to computer code, money, games, temperatures, and everyday mathematics, zero is quietly working behind the scenes.
+
+But zero wasn't always understood as a number. Long ago, people struggled to write and organize large numbers without it. Readers will travel back in time to discover how ancient civilizations used symbols for empty places and how mathematician Brahmagupta helped establish zero as a real number with rules for calculation.
+
+Then the adventure continues into the world of mathematics.
+
+Children will discover how zero acts as a placeholder, protects place value, makes large numbers easier to understand, and changes the value of numbers when it moves into different positions. They'll explore what happens when we add, subtract, or multiply by zero—and uncover the great mystery of why division by zero is undefined.
+
+The journey doesn't stop in space.
+
+Zero appears in sports scores, reset buttons, money, everyday measurements, and many other familiar situations. By the end, children may never look at the little circle in their mathematics books in quite the same way again.
+
+Written in a playful, beginner-friendly style and supported by colourful illustrations, Zero: The Hero of Space encourages children to do more than memorize mathematical rules. It encourages them to wonder, connect ideas, ask questions, and discover the hidden mathematics all around them.
