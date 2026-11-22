@@ -14,6 +14,12 @@ amazonUrl: "https://www.amazon.com/dp/B0HLYQ8KWC"
 googlePlayUrl: "https://www.google.co.in/books/edition/ZERO_THE_HERO_OF_SPACE/gFcWEgAAQBAJ?hl=en&gbpv=0"
 websiteUrl: "/math/"
 websiteLabel: "Explore Related Lessons"
+readingAge: "7 - 11 years"
+pages: 44
+format: "Ebook & Paperback"
+language: "English"
+dimensions: "6 x 9 inches"
+publishDate: "October 2026"
 order: 1
 draft: false
 ---
