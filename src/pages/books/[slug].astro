@@ -14,7 +14,7 @@ export async function getStaticPaths() {
 const { book } = Astro.props;
 const { Content } = await render(book);
 
-// Check if buy/read links or gallery images exist
+// Check if at least one buy/read link or gallery image is present
 const hasLinks = book.data.amazonUrl || book.data.googlePlayUrl || book.data.websiteUrl;
 const hasGallery = book.data.gallery && book.data.gallery.length > 0;
 
@@ -113,7 +113,7 @@ const bookSpecs = [
     <div class="wrap">
       <div class:list={['book-split-layout', !hasGallery && 'no-gallery']}>
 
-        <!-- LEFT COLUMN: Clean single preview image (no side blank space) + bottom thumbnails -->
+        <!-- LEFT COLUMN: Large preview image + 4-per-row thumbnail grid -->
         {hasGallery && (
           <div class="amazon-viewer" data-gallery={JSON.stringify(book.data.gallery)}>
             <div class="amazon-main-frame">
@@ -131,7 +131,7 @@ const bookSpecs = [
               </button>
             </div>
 
-            <!-- Small thumbnail boxes below the preview image -->
+            <!-- 4 thumbnails per row; extra thumbnails automatically move to row 2 -->
             <div class="amazon-thumbs" role="list" aria-label="Page thumbnails">
               {book.data.gallery.map((thumbSrc, idx) => (
                 <button
@@ -328,10 +328,10 @@ const bookSpecs = [
       line-height: 1.35;
     }
 
-    /* Lower Two-Column Split: Image Column Sized to Fit Content + Wide About Column */
+    /* Lower Two-Column Split: Fixed Left Viewer Width + Wide About Column */
     .book-split-layout {
       display: grid;
-      grid-template-columns: auto 1fr;
+      grid-template-columns: 300px 1fr;
       gap: 48px;
       align-items: start;
     }
@@ -342,13 +342,13 @@ const bookSpecs = [
     }
 
     .amazon-viewer {
-      width: fit-content;
-      max-width: 100%;
+      width: 100%;
+      max-width: 300px;
     }
 
-    /* Frame hugs the image cleanly so portrait pages have zero extra side blank space */
+    /* Main preview box inside the 300px column */
     .amazon-main-frame {
-      display: inline-block;
+      width: 100%;
       border: 1px solid var(--line);
       border-radius: 10px;
       background: var(--soft);
@@ -357,7 +357,10 @@ const bookSpecs = [
     }
 
     .amazon-main-btn {
-      display: block;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
       padding: 0;
       border: 0;
       background: transparent;
@@ -366,23 +369,23 @@ const bookSpecs = [
 
     .amazon-main-btn img {
       display: block;
-      width: auto;
       max-width: 100%;
-      max-height: 430px;
+      max-height: 410px;
+      width: auto;
       height: auto;
     }
 
-    /* Row of small thumbnail boxes underneath the preview image */
+    /* 4-column thumbnail grid: 4 per row, automatically wraps to row 2+ */
     .amazon-thumbs {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
       margin-top: 12px;
     }
 
     .amazon-thumb-btn {
-      width: 58px;
-      height: 66px;
+      width: 100%;
+      aspect-ratio: 3 / 4;
       padding: 2px;
       border: 1.5px solid var(--line);
       border-radius: 6px;
@@ -416,7 +419,7 @@ const bookSpecs = [
     /* About This Book column & collapsible "Read more..." behavior */
     .book-about-column {
       min-width: 0;
-      max-width: 720px;
+      max-width: 740px;
     }
 
     .book-about-column h2 {
@@ -540,16 +543,7 @@ const bookSpecs = [
         gap: 36px;
       }
       .amazon-viewer {
-        width: 100%;
-      }
-      .amazon-main-frame {
-        display: block;
-      }
-      .amazon-main-btn {
-        width: 100%;
-      }
-      .amazon-main-btn img {
-        margin-inline: auto;
+        max-width: 340px;
       }
     }
 
@@ -642,7 +636,6 @@ const bookSpecs = [
     const aboutToggle = document.getElementById('about-toggle-btn');
 
     if (aboutBox && aboutToggle) {
-      // Only collapse if content is taller than the preview threshold
       if (aboutBox.scrollHeight > 410) {
         aboutBox.classList.add('collapsed');
         aboutToggle.hidden = false;
