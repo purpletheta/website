@@ -2,6 +2,7 @@
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 
+// Generate a static page for every book in src/content/books/
 export async function getStaticPaths() {
   const books = await getCollection('books');
   return books.map((book) => ({
@@ -12,39 +13,337 @@ export async function getStaticPaths() {
 
 const { book } = Astro.props;
 const { Content } = await render(book);
+
+// Check if at least one buy/read link is provided
+const hasLinks = book.data.amazonUrl || book.data.googlePlayUrl || book.data.websiteUrl;
 ---
 
-<BaseLayout title={`${book.data.title} | PurpleTheta`} description={book.data.description}>
-  <article style="max-width: 760px; margin: 3rem auto; padding: 0 1.5rem;">
-    <a href="/books/" style="display: inline-block; margin-bottom: 1.5rem; text-decoration: none; font-weight: 600;">
-      ← Back to all books
-    </a>
+<BaseLayout title={book.data.title} description={book.data.description}>
+  <!-- ======================================================================
+       1. TOP BOOK SHOWCASE (Cover + Title + Buy/Read Links)
+       ====================================================================== -->
+  <section class="page-hero">
+    <div class="wrap">
+      <!-- Breadcrumb Navigation -->
+      <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a href="/books/">← Back to all books</a>
+        <span> · {book.data.category}</span>
+      </nav>
 
-    {book.data.label && (
-      <p style="text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.85rem; opacity: 0.75; margin-bottom: 0.5rem;">
-        {book.data.label}
-      </p>
-    )}
+      <div class="book-detail-hero">
+        <!-- Left Column: Main Book Cover -->
+        <div class="book-detail-cover">
+          {book.data.cover ? (
+            <img src={book.data.cover} alt={`Cover of ${book.data.title}`} />
+          ) : (
+            <div class="book-cover-placeholder">
+              <small>PURPLETHETA</small>
+              <span>{book.data.title}</span>
+            </div>
+          )}
+        </div>
 
-    <h1 style="margin-top: 0; margin-bottom: 1rem;">{book.data.title}</h1>
-    
-    <p style="font-size: 1.15rem; line-height: 1.6; opacity: 0.9; margin-bottom: 2rem;">
-      {book.data.description}
-    </p>
+        <!-- Right Column: Metadata, Summary & Buy Buttons -->
+        <div class="book-detail-meta">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px;">
+            <span class="pill">{book.data.category}</span>
+            <span class="pill" style="background: var(--soft); color: var(--muted); border: 1px solid var(--line);">
+              {book.data.label}
+            </span>
+          </div>
 
-    {book.data.cover && (
-      <img 
-        src={book.data.cover} 
-        alt={book.data.title} 
-        style="max-width: 280px; border-radius: 8px; margin-bottom: 2rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" 
-      />
-    )}
+          <h1 class="book-detail-title">{book.data.title}</h1>
+          <p class="book-detail-summary">{book.data.description}</p>
 
-    <hr style="border: 0; border-top: 1px solid rgba(128,128,128,0.2); margin: 2rem 0;" />
+          <!-- Purchase & Reading Links -->
+          {hasLinks && (
+            <div class="buy-box">
+              <p class="buy-box-label">Get this book:</p>
+              <div class="buy-buttons">
+                {book.data.amazonUrl && (
+                  <a href={book.data.amazonUrl} target="_blank" rel="noopener noreferrer" class="button">
+                    Buy on Amazon <span>↗</span>
+                  </a>
+                )}
+                {book.data.googlePlayUrl && (
+                  <a href={book.data.googlePlayUrl} target="_blank" rel="noopener noreferrer" class="button button-outline">
+                    Google Play Books <span>↗</span>
+                  </a>
+                )}
+                {book.data.websiteUrl && (
+                  <a href={book.data.websiteUrl} class="button button-outline">
+                    {book.data.websiteLabel} <span>→</span>
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  </section>
 
-    <div class="book-content" style="line-height: 1.7;">
+  <!-- ======================================================================
+       2. INSIDE THE BOOK GALLERY (5–6 Sample Pages, shown if 'gallery' exists)
+       ====================================================================== -->
+  {book.data.gallery && book.data.gallery.length > 0 && (
+    <section class="section section-soft">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <h2>Look Inside the Book</h2>
+            <p>Click any sample page below to view it larger.</p>
+          </div>
+        </div>
+
+        <div class="book-gallery-grid">
+          {book.data.gallery.map((imgSrc, index) => (
+            <button
+              type="button"
+              class="gallery-thumb"
+              data-full-img={imgSrc}
+              aria-label={`View sample page ${index + 1} of ${book.data.title}`}
+            >
+              <img src={imgSrc} alt={`${book.data.title} - sample page ${index + 1}`} loading="lazy" />
+              <span class="gallery-badge">Page {index + 1}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- ======================================================================
+       3. DETAILED BOOK DESCRIPTION (Your 3–4 paragraphs from the .md file)
+       ====================================================================== -->
+  <section class="section">
+    <div class="wrap content-wrap prose">
+      <h2>About This Book</h2>
       <Content />
     </div>
-  </article>
-</BaseLayout>
+  </section>
 
+  <!-- ======================================================================
+       4. FULLSCREEN IMAGE LIGHTBOX (Opens when a reader clicks a sample page)
+       ====================================================================== -->
+  <dialog id="page-lightbox" class="lightbox-modal">
+    <button type="button" id="lightbox-close" class="lightbox-close" aria-label="Close preview">✕ Close</button>
+    <img id="lightbox-img" src="" alt="Book page preview" />
+  </dialog>
+
+  <style>
+    /* Layout for the top book cover + details section */
+    .book-detail-hero {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 48px;
+      align-items: start;
+      margin-top: 12px;
+    }
+
+    .book-detail-cover img {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--purple-border);
+      box-shadow: 0 16px 36px rgba(30, 27, 38, 0.14);
+      display: block;
+    }
+
+    .book-cover-placeholder {
+      aspect-ratio: 2 / 3;
+      background: var(--purple-soft);
+      border: 1px solid var(--purple-border);
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      color: var(--purple);
+      font-family: 'Manrope', sans-serif;
+      font-weight: 800;
+      font-size: 20px;
+    }
+
+    .book-cover-placeholder small {
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      margin-bottom: 10px;
+    }
+
+    .book-detail-title {
+      font-family: 'Manrope', sans-serif;
+      font-size: clamp(32px, 4vw, 46px);
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      line-height: 1.12;
+      margin: 0 0 16px;
+    }
+
+    .book-detail-summary {
+      font-size: 17.5px;
+      color: var(--muted);
+      line-height: 1.65;
+      margin: 0 0 28px;
+      max-width: 620px;
+    }
+
+    /* Buy / Where to Read Box */
+    .buy-box {
+      background: #fff;
+      border: 1px solid var(--purple-border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .buy-box-label {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin: 0 0 12px;
+    }
+
+    .buy-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .button-outline {
+      background: var(--purple-soft);
+      color: var(--purple);
+      border: 1px solid var(--purple-border);
+      box-shadow: none;
+    }
+
+    .button-outline:hover {
+      background: var(--purple);
+      color: #fff;
+      border-color: var(--purple);
+    }
+
+    /* 5–6 Image Sample Pages Grid */
+    .book-gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .gallery-thumb {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      padding: 0;
+      background: #fff;
+      cursor: zoom-in;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .gallery-thumb:hover {
+      transform: translateY(-3px);
+      border-color: var(--purple);
+      box-shadow: var(--shadow-md);
+    }
+
+    .gallery-thumb img {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      display: block;
+    }
+
+    .gallery-badge {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(30, 27, 38, 0.78);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 99px;
+    }
+
+    /* Lightbox Popup */
+    .lightbox-modal {
+      border: 0;
+      border-radius: 10px;
+      padding: 12px;
+      background: #1e1b26;
+      max-width: 90vw;
+      max-height: 90vh;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .lightbox-modal::backdrop {
+      background: rgba(15, 13, 22, 0.8);
+      backdrop-filter: blur(4px);
+    }
+
+    .lightbox-modal img {
+      max-width: 85vw;
+      max-height: 80vh;
+      display: block;
+      border-radius: 6px;
+    }
+
+    .lightbox-close {
+      display: block;
+      margin: 0 0 8px auto;
+      background: #fff;
+      color: var(--ink);
+      border: 0;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    @media (max-width: 780px) {
+      .book-detail-hero {
+        grid-template-columns: 1fr;
+        gap: 28px;
+      }
+      .book-detail-cover {
+        max-width: 240px;
+      }
+      .book-gallery-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 500px) {
+      .book-gallery-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+
+  <script>
+    // Interactive click-to-zoom script for the sample pages
+    const modal = document.getElementById('page-lightbox') as HTMLDialogElement | null;
+    const modalImg = document.getElementById('lightbox-img') as HTMLImageElement | null;
+    const closeBtn = document.getElementById('lightbox-close');
+
+    document.querySelectorAll('.gallery-thumb').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const src = btn.getAttribute('data-full-img');
+        if (modal && modalImg && src) {
+          modalImg.src = src;
+          modal.showModal();
+        }
+      });
+    });
+
+    closeBtn?.addEventListener('click', () => modal?.close());
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) modal.close();
+    });
+  </script>
+</BaseLayout>
