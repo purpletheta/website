@@ -32,7 +32,7 @@ const bookSpecs = [
 
 <BaseLayout title={book.data.title} description={book.data.description}>
   <!-- ======================================================================
-       1. TOP BOOK SHOWCASE (Cover + Title + Buy Links + Compact Specs Strip)
+1. TOP BOOK SHOWCASE (Cover + Title + Buy Links + Compact Specs Strip)
        ====================================================================== -->
   <section class="page-hero">
     <div class="wrap">
@@ -82,7 +82,8 @@ const bookSpecs = [
                     Google Play Books <span>↗</span>
                   </a>
                 )}
-                {book.data.websiteUrl && (
+                {/* Third link button: hidden on Story Books, shown for Math & other non-story books when websiteUrl is set */}
+                {showWebsiteLink && (
                   <a href={book.data.websiteUrl} class="button button-outline">
                     {book.data.websiteLabel} <span>→</span>
                   </a>
@@ -108,7 +109,7 @@ const bookSpecs = [
   </section>
 
   <!-- ======================================================================
-       2. LOWER SECTION: TIGHT IMAGE VIEWER (LEFT) + COLLAPSIBLE ABOUT (RIGHT)
+2. LOWER SECTION: TIGHT IMAGE VIEWER (LEFT) + COLLAPSIBLE ABOUT (RIGHT)
        ====================================================================== -->
   <section class="section">
     <div class="wrap">
@@ -173,7 +174,7 @@ const bookSpecs = [
   </section>
 
   <!-- ======================================================================
-       3. FULLSCREEN LIGHTBOX (Opens when clicking the large preview image)
+3. FULLSCREEN LIGHTBOX (Opens when clicking the large preview image)
        ====================================================================== -->
   <dialog id="page-lightbox" class="lightbox-modal">
     <div class="lightbox-topbar">
@@ -201,7 +202,7 @@ const bookSpecs = [
   </dialog>
 
   <!-- ======================================================================
-       4. STYLES
+4. STYLES
        ====================================================================== -->
   <style>
     /* Top Book Cover + Metadata Layout */
@@ -560,7 +561,7 @@ const bookSpecs = [
   </style>
 
   <!-- ======================================================================
-       5. THUMBNAIL SWITCHING, LIGHTBOX & "READ MORE..." SCRIPT
+5. THUMBNAIL SWITCHING, LIGHTBOX & "READ MORE..." SCRIPT
        ====================================================================== -->
   <script>
     const viewer = document.querySelector('.amazon-viewer');
