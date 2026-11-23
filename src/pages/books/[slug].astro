@@ -14,9 +14,16 @@ export async function getStaticPaths() {
 const { book } = Astro.props;
 const { Content } = await render(book);
 
-// Only show the third link button if websiteUrl is set AND the book is not in "Story Books"
+// Direct PurpleTheta (India delivery) link shown across categories whenever indiaBuyUrl is set
+const hasIndiaBuy = Boolean(book.data.indiaBuyUrl);
+
+// Keep websiteUrl hidden on "Story Books", shown for Math & other non-story books when set
 const showWebsiteLink = Boolean(book.data.websiteUrl) && book.data.category !== 'Story Books';
-const hasLinks = Boolean(book.data.amazonUrl || book.data.googlePlayUrl || showWebsiteLink);
+
+// Show the Get This Book box if at least one purchase or reading link exists
+const hasLinks = Boolean(
+  book.data.amazonUrl || book.data.googlePlayUrl || hasIndiaBuy || showWebsiteLink
+);
 const hasGallery = book.data.gallery && book.data.gallery.length > 0;
 
 // Build compact "At a Glance" items only for fields that are filled in
@@ -80,6 +87,12 @@ const bookSpecs = [
                 {book.data.googlePlayUrl && (
                   <a href={book.data.googlePlayUrl} target="_blank" rel="noopener noreferrer" class="button button-outline">
                     Google Play Books <span>↗</span>
+                  </a>
+                )}
+                {/* Direct PurpleTheta purchase button (for Razorpay / India-only delivery) */}
+                {hasIndiaBuy && (
+                  <a href={book.data.indiaBuyUrl} target="_blank" rel="noopener noreferrer" class="button button-outline">
+                    Buy from PurpleTheta (India Only) <span>↗</span>
                   </a>
                 )}
                 {/* Third link button: hidden on Story Books, shown for Math & other non-story books when websiteUrl is set */}
