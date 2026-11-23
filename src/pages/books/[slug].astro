@@ -14,8 +14,9 @@ export async function getStaticPaths() {
 const { book } = Astro.props;
 const { Content } = await render(book);
 
-// Check if at least one buy/read link or gallery image is present
-const hasLinks = book.data.amazonUrl || book.data.googlePlayUrl || book.data.websiteUrl;
+// Only show the third link button if websiteUrl is set AND the book is not in "Story Books"
+const showWebsiteLink = Boolean(book.data.websiteUrl) && book.data.category !== 'Story Books';
+const hasLinks = Boolean(book.data.amazonUrl || book.data.googlePlayUrl || showWebsiteLink);
 const hasGallery = book.data.gallery && book.data.gallery.length > 0;
 
 // Build compact "At a Glance" items only for fields that are filled in
