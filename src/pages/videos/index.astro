@@ -1,5 +1,712 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-const videos=[{title:'Squares and Square Roots',category:'Class 8 Mathematics',desc:'A growing collection of video lessons covering square numbers, patterns and square roots.'},{title:'Cubes and Cube Roots',category:'Class 8 Mathematics',desc:'Lessons on cubes, perfect cubes, patterns and cube roots.'},{title:'Exponents and Powers',category:'Class 8 Mathematics',desc:'Understand exponent laws and use powers to represent numbers.'}];
+import { getCollection } from 'astro:content';
+
+// Pull all non-draft items from src/content/videos and sort by order, then newest first
+const allItems = (await getCollection('videos', ({ data }) => !data.draft)).sort((a, b) => {
+  if (a.data.order !== b.data.order) return a.data.order - b.data.order;
+  return b.data.pubDate.valueOf() - a.data.pubDate.valueOf();
+});
+
+// Helper to turn a YouTube playlist or video URL into embed + watch links + thumbnail
+function parseYouTubeUrl(rawUrl: string) {
+  let playlistId = '';
+  let videoId = '';
+
+  try {
+    const url = new URL(rawUrl);
+    playlistId = url.searchParams.get('list') || '';
+
+    if (url.hostname.includes('youtu.be')) {
+      videoId = url.pathname.replace('/', '').trim();
+    } else if (url.pathname.includes('/embed/')) {
+      videoId = url.pathname.split('/embed/')[1]?.split('/')[0] || '';
+    } else if (url.pathname.includes('/shorts/')) {
+      videoId = url.pathname.split('/shorts/')[1]?.split('/')[0] || '';
+    } else {
+      videoId = url.searchParams.get('v') || '';
+    }
+  } catch {
+    // If URL parsing fails, fall back cleanly to the original link
+  }
+
+  let embedUrl = '';
+  if (playlistId && videoId) {
+    embedUrl = `https://www.youtube.com/embed/${videoId}?list=${encodeURIComponent(playlistId)}`;
+  } else if (playlistId) {
+    embedUrl = `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(playlistId)}`;
+  } else if (videoId) {
+    embedUrl = `https://www.youtube.com/embed/${encodeURIComponent(videoId)}`;
+  }
+
+  const thumbnail = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : '';
+  const isPlaylist = Boolean(playlistId);
+
+  return {
+    watchUrl: rawUrl,
+    embedUrl,
+    thumbnail,
+    isPlaylist,
+  };
+}
+
+const classLevels: Array<'Class 8' | 'Class 9' | 'Class 10'> = [
+  'Class 8',
+  'Class 9',
+  'Class 10',
+];
+
+const enrichedItems = allItems.map((item) => {
+  const yt = parseYouTubeUrl(item.data.youtubeUrl);
+  return {
+    id: item.id,
+    title: item.data.title,
+    description: item.data.description,
+    classLevel: item.data.classLevel,
+    chapter: item.data.chapter,
+    watchUrl: yt.watchUrl,
+    embedUrl: yt.embedUrl,
+    thumbnail: yt.thumbnail,
+    isPlaylist: yt.isPlaylist,
+  };
+});
+
+const itemsByClass = {
+  'Class 8': enrichedItems.filter((item) => item.classLevel === 'Class 8'),
+  'Class 9': enrichedItems.filter((item) => item.classLevel === 'Class 9'),
+  'Class 10': enrichedItems.filter((item) => item.classLevel === 'Class 10'),
+};
 ---
-<BaseLayout title="Videos" description="Watch PurpleTheta mathematics videos and organized YouTube lessons for Class 8, 9 and 10."><section class="page-hero"><div class="wrap page-heading"><p class="eyebrow">Watch · Learn</p><h1>Video Library</h1><p>Video lessons and visual explanations to make mathematical ideas easier to understand. New videos will be added here as they are published.</p></div></section><section class="section"><div class="wrap"><div class="video-grid">{videos.map(video=><article class="video-card"><div class="video-thumb"><span>▶</span></div><div class="video-info"><div class="article-meta">{video.category}</div><h3>{video.title}</h3><p>{video.desc}</p><span class="card-link">Video links coming soon</span></div></article>)}</div><p class="empty-note" style="margin-top:24px">To add a video, copy a card in this page and replace the title, description and YouTube link. You can optionally add a thumbnail image.</p></div></section></BaseLayout>
+
+<BaseLayout
+  title="Videos"
+  description="Watch PurpleTheta mathematics chapter playlists for Class 8, Class 9, and Class 10."
+>
+  <section class="page-hero">
+    <div class="wrap page-heading">
+      <p class="eyebrow">Watch · Learn</p>
+      <h1>Chapter Video Playlists</h1>
+      <p>
+        Organized chapter-wise playlists to help you learn step by step. Choose a class below to
+        explore all chapter playlists or click any card to watch right here.
+      </p>
+
+      <!-- Smart Class Filter Buttons -->
+      <div class="filter-bar" role="group" aria-label="Filter playlists by class">
+        <button type="button" class="filter-btn active" data-filter="all">
+          All Classes <span class="filter-count">{enrichedItems.length}</span>
+        </button>
+        {classLevels.map((cls) => (
+          <button type="button" class="filter-btn" data-filter={cls}>
+            {cls} <span class="filter-count">{itemsByClass[cls].length}</span>
+          </button>
+        ))}
+        <button type="button" class="filter-reset" id="resetFiltersBtn" hidden>
+          Reset View ✕
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- DEFAULT VIEW: Up to 3 playlist cards per class in clean 3-card rows -->
+  <section class="section" id="defaultVideosView">
+    <div class="wrap">
+      {classLevels.map((cls) => {
+        const classList = itemsByClass[cls];
+        const previewList = classList.slice(0, 3);
+
+        return (
+          <div class="class-block" style="margin-bottom: 48px;">
+            <div class="section-head">
+              <div>
+                <h2>{cls} Playlists</h2>
+                <p>
+                  {classList.length > 0
+                    ? `Showing ${previewList.length} of ${classList.length} chapter playlists`
+                    : `${cls} chapter playlists will appear here as they are added.`}
+                </p>
+              </div>
+              {classList.length > 0 && (
+                <button type="button" class="text-link class-jump-btn" data-jump-class={cls}>
+                  View all {cls} ({classList.length}) →
+                </button>
+              )}
+            </div>
+
+            {previewList.length > 0 ? (
+              <div class="video-grid three-col-row">
+                {previewList.map((video) => (
+                  <article
+                    class="video-card glass-video-card"
+                    data-title={video.title}
+                    data-chapter={video.chapter}
+                    data-class={video.classLevel}
+                    data-embed={video.embedUrl}
+                    data-watch={video.watchUrl}
+                    data-desc={video.description}
+                    data-playlist={video.isPlaylist ? 'Playlist' : 'Video'}
+                  >
+                    <div class="video-thumb">
+                      {video.thumbnail ? (
+                        <img
+                          src={video.thumbnail}
+                          alt={`${video.classLevel} ${video.chapter} thumbnail`}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div class="thumb-fallback">
+                          <span class="thumb-theta">θ</span>
+                          <span>{video.isPlaylist ? 'CHAPTER PLAYLIST' : 'VIDEO LESSON'}</span>
+                        </div>
+                      )}
+                      <span class="play-badge">▶ Watch</span>
+                    </div>
+
+                    <div class="video-info">
+                      <div class="article-meta">
+                        {video.classLevel} · {video.chapter}
+                        {video.isPlaylist && <span class="type-pill">Playlist</span>}
+                      </div>
+                      <h3>{video.title}</h3>
+                      <p>{video.description}</p>
+                      <div class="card-actions">
+                        <button type="button" class="card-link open-modal-btn">
+                          Watch here →
+                        </button>
+                        <a
+                          href={video.watchUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="yt-link"
+                        >
+                          YouTube ↗
+                        </a>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p class="empty-note">No {cls} playlists published yet.</p>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  </section>
+
+  <!-- FILTERED VIEW: Shows all playlists for the selected class in 3-card rows -->
+  <section class="section" id="filteredVideosView" hidden>
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <h2 id="filteredHeading">Class Playlists</h2>
+          <p id="filteredSubheading">All chapter playlists for this class.</p>
+        </div>
+        <button type="button" class="text-link" id="backToAllBtn">
+          ← Back to all classes
+        </button>
+      </div>
+
+      <div class="video-grid three-col-row" id="filteredGrid">
+        {enrichedItems.map((video) => (
+          <article
+            class="video-card glass-video-card filtered-item"
+            data-title={video.title}
+            data-chapter={video.chapter}
+            data-class={video.classLevel}
+            data-embed={video.embedUrl}
+            data-watch={video.watchUrl}
+            data-desc={video.description}
+            data-playlist={video.isPlaylist ? 'Playlist' : 'Video'}
+          >
+            <div class="video-thumb">
+              {video.thumbnail ? (
+                <img
+                  src={video.thumbnail}
+                  alt={`${video.classLevel} ${video.chapter} thumbnail`}
+                  loading="lazy"
+                />
+              ) : (
+                <div class="thumb-fallback">
+                  <span class="thumb-theta">θ</span>
+                  <span>{video.isPlaylist ? 'CHAPTER PLAYLIST' : 'VIDEO LESSON'}</span>
+                </div>
+              )}
+              <span class="play-badge">▶ Watch</span>
+            </div>
+
+            <div class="video-info">
+              <div class="article-meta">
+                {video.classLevel} · {video.chapter}
+                {video.isPlaylist && <span class="type-pill">Playlist</span>}
+              </div>
+              <h3>{video.title}</h3>
+              <p>{video.description}</p>
+              <div class="card-actions">
+                <button type="button" class="card-link open-modal-btn">
+                  Watch here →
+                </button>
+                <a
+                  href={video.watchUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="yt-link"
+                >
+                  YouTube ↗
+                </a>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <p class="empty-note" id="filteredEmptyNote" hidden style="margin-top: 24px;">
+        No playlists added for this class yet. New chapter playlists will appear here soon.
+      </p>
+    </div>
+  </section>
+
+  <!-- POP-UP MODAL PLAYER -->
+  <div class="video-modal" id="videoModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" hidden>
+    <div class="video-modal-backdrop" id="modalBackdrop"></div>
+    <div class="video-modal-dialog">
+      <div class="video-modal-header">
+        <div>
+          <div class="article-meta" id="modalMeta">Class 8 · Chapter</div>
+          <h3 id="modalTitle">Playlist Title</h3>
+        </div>
+        <button type="button" class="modal-close-btn" id="closeModalBtn" aria-label="Close player">
+          ✕
+        </button>
+      </div>
+
+      <div class="video-modal-player">
+        <iframe
+          id="modalIframe"
+          src=""
+          title="YouTube video player"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen
+        ></iframe>
+        <div class="modal-fallback" id="modalFallback" hidden>
+          <p>Couldn't load an embedded preview for this link. You can open it directly on YouTube.</p>
+        </div>
+      </div>
+
+      <div class="video-modal-footer">
+        <p id="modalDesc"></p>
+        <a
+          id="modalYoutubeLink"
+          href="https://www.youtube.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="button"
+        >
+          Open on YouTube ↗
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+      align-items: center;
+    }
+
+    .filter-btn,
+    .filter-reset {
+      appearance: none;
+      border: 1px solid rgba(107, 70, 193, 0.25);
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(10px);
+      color: inherit;
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 0.92rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .filter-btn:hover,
+    .filter-reset:hover {
+      border-color: rgba(107, 70, 193, 0.6);
+      transform: translateY(-1px);
+    }
+
+    .filter-btn.active {
+      background: #6b46c1;
+      color: #ffffff;
+      border-color: #6b46c1;
+    }
+
+    .filter-count {
+      font-size: 0.78rem;
+      opacity: 0.85;
+      padding: 1px 7px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.08);
+    }
+
+    .filter-btn.active .filter-count {
+      background: rgba(255, 255, 255, 0.22);
+    }
+
+    .filter-reset {
+      background: transparent;
+      border-style: dashed;
+    }
+
+    .three-col-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .three-col-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 600px) {
+      .three-col-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .glass-video-card {
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(107, 70, 193, 0.16);
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .video-thumb {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      background: linear-gradient(135deg, #2d1b69, #6b46c1);
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .video-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .thumb-fallback {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      gap: 6px;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+    }
+
+    .thumb-theta {
+      font-size: 2.2rem;
+      line-height: 1;
+      opacity: 0.9;
+    }
+
+    .play-badge {
+      position: absolute;
+      right: 10px;
+      bottom: 10px;
+      background: rgba(17, 12, 34, 0.82);
+      color: #ffffff;
+      font-size: 0.78rem;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+
+    .type-pill {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: rgba(107, 70, 193, 0.14);
+      color: #553c9a;
+    }
+
+    .card-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: auto;
+      padding-top: 12px;
+    }
+
+    .card-link,
+    .class-jump-btn {
+      background: none;
+      border: none;
+      padding: 0;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .yt-link {
+      font-size: 0.85rem;
+      opacity: 0.8;
+      text-decoration: none;
+    }
+
+    .yt-link:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+
+    /* Modal Styles */
+    .video-modal[hidden] {
+      display: none;
+    }
+
+    .video-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .video-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(12, 9, 24, 0.72);
+      backdrop-filter: blur(6px);
+    }
+
+    .video-modal-dialog {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 820px;
+      background: #ffffff;
+      color: #18181b;
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+    }
+
+    .video-modal-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .video-modal-header h3 {
+      margin: 4px 0 0;
+    }
+
+    .modal-close-btn {
+      appearance: none;
+      border: 1px solid rgba(0, 0, 0, 0.14);
+      background: #f4f4f5;
+      color: #18181b;
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      font-size: 1rem;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .video-modal-player {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      background: #09090b;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .video-modal-player iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+    }
+
+    .modal-fallback {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: #ffffff;
+      text-align: center;
+    }
+
+    .video-modal-footer {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .video-modal-footer p {
+      margin: 0;
+      max-width: 520px;
+      font-size: 0.95rem;
+    }
+  </style>
+
+  <script>
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const jumpButtons = document.querySelectorAll('.class-jump-btn');
+    const resetBtn = document.getElementById('resetFiltersBtn');
+    const backToAllBtn = document.getElementById('backToAllBtn');
+    const defaultView = document.getElementById('defaultVideosView');
+    const filteredView = document.getElementById('filteredVideosView');
+    const filteredHeading = document.getElementById('filteredHeading');
+    const filteredSubheading = document.getElementById('filteredSubheading');
+    const filteredEmptyNote = document.getElementById('filteredEmptyNote');
+    const filteredCards = document.querySelectorAll('.filtered-item');
+
+    function applyClassFilter(selectedClass) {
+      filterButtons.forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.filter === selectedClass);
+      });
+
+      if (selectedClass === 'all') {
+        defaultView?.removeAttribute('hidden');
+        filteredView?.setAttribute('hidden', '');
+        resetBtn?.setAttribute('hidden', '');
+        return;
+      }
+
+      defaultView?.setAttribute('hidden', '');
+      filteredView?.removeAttribute('hidden');
+      resetBtn?.removeAttribute('hidden');
+
+      if (filteredHeading) filteredHeading.textContent = `${selectedClass} Playlists`;
+      if (filteredSubheading) {
+        filteredSubheading.textContent = `All chapter playlists for ${selectedClass}.`;
+      }
+
+      let visibleCount = 0;
+      filteredCards.forEach((card) => {
+        const matches = card.getAttribute('data-class') === selectedClass;
+        card.toggleAttribute('hidden', !matches);
+        if (matches) visibleCount++;
+      });
+
+      if (filteredEmptyNote) {
+        filteredEmptyNote.toggleAttribute('hidden', visibleCount > 0);
+      }
+    }
+
+    filterButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        applyClassFilter(btn.dataset.filter || 'all');
+      });
+    });
+
+    jumpButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const targetClass = btn.getAttribute('data-jump-class') || 'all';
+        applyClassFilter(targetClass);
+        document.querySelector('.page-hero')?.scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+
+    resetBtn?.addEventListener('click', () => applyClassFilter('all'));
+    backToAllBtn?.addEventListener('click', () => {
+      applyClassFilter('all');
+      document.querySelector('.page-hero')?.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    // Pop-up Modal Player logic
+    const modal = document.getElementById('videoModal');
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const modalIframe = document.getElementById('modalIframe');
+    const modalFallback = document.getElementById('modalFallback');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalMeta = document.getElementById('modalMeta');
+    const modalDesc = document.getElementById('modalDesc');
+    const modalYoutubeLink = document.getElementById('modalYoutubeLink');
+
+    function openVideoModal(card) {
+      const title = card.getAttribute('data-title') || 'Video Playlist';
+      const chapter = card.getAttribute('data-chapter') || '';
+      const cls = card.getAttribute('data-class') || '';
+      const typeLabel = card.getAttribute('data-playlist') || 'Playlist';
+      const embed = card.getAttribute('data-embed') || '';
+      const watch = card.getAttribute('data-watch') || 'https://www.youtube.com';
+      const desc = card.getAttribute('data-desc') || '';
+
+      if (modalTitle) modalTitle.textContent = title;
+      if (modalMeta) modalMeta.textContent = `${cls} · ${chapter} · ${typeLabel}`;
+      if (modalDesc) modalDesc.textContent = desc;
+      if (modalYoutubeLink) modalYoutubeLink.setAttribute('href', watch);
+
+      if (embed && modalIframe instanceof HTMLIFrameElement) {
+        modalFallback?.setAttribute('hidden', '');
+        modalIframe.removeAttribute('hidden');
+        modalIframe.src = embed;
+      } else {
+        modalIframe?.setAttribute('hidden', '');
+        if (modalIframe instanceof HTMLIFrameElement) modalIframe.src = '';
+        modalFallback?.removeAttribute('hidden');
+      }
+
+      modal?.removeAttribute('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeVideoModal() {
+      modal?.setAttribute('hidden', '');
+      document.body.style.overflow = '';
+      if (modalIframe instanceof HTMLIFrameElement) {
+        modalIframe.src = '';
+      }
+    }
+
+    document.querySelectorAll('.glass-video-card').forEach((card) => {
+      const thumb = card.querySelector('.video-thumb');
+      const openBtn = card.querySelector('.open-modal-btn');
+
+      thumb?.addEventListener('click', () => openVideoModal(card));
+      openBtn?.addEventListener('click', () => openVideoModal(card));
+    });
+
+    closeModalBtn?.addEventListener('click', closeVideoModal);
+    modalBackdrop?.addEventListener('click', closeVideoModal);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal && !modal.hasAttribute('hidden')) {
+        closeVideoModal();
+      }
+    });
+  </script>
+</BaseLayout>
