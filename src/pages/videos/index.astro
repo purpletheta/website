@@ -680,7 +680,9 @@ const itemsByClass = {
         modalIframe.src = embed;
       } else {
         modalIframe?.setAttribute('hidden', '');
-        if (modalIframe instanceof HTMLIFrameElement) modalIframe.src = '';
+        if (modalIframe instanceof HTMLIFrameElement) {
+          modalIframe.src = '';
+        }
         modalFallback?.removeAttribute('hidden');
       }
 
