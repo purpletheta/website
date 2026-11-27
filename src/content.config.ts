@@ -21,7 +21,7 @@ const blog = defineCollection({
 });
 
 // ==========================================================================
-// 2. BOOKS COLLECTION (Includes Categories, Gallery, Buy Links & Book Specs)
+// 2. BOOKS COLLECTION (Unchanged)
 // ==========================================================================
 const books = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/content/books' }),
@@ -60,4 +60,21 @@ const books = defineCollection({
   }),
 });
 
-export const collections = { blog, books };
+// ==========================================================================
+// 3. VIDEOS / CHAPTER PLAYLISTS COLLECTION
+// ==========================================================================
+const videos = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/videos' }),
+  schema: z.object({
+    title: z.string(),                        // Playlist or video title
+    description: z.string(),                  // Short 1–2 sentence summary
+    youtubeUrl: z.string(),                   // Full YouTube playlist or video URL
+    classLevel: z.enum(['Class 8', 'Class 9', 'Class 10']),
+    chapter: z.string(),                      // e.g., "Squares and Square Roots"
+    pubDate: z.coerce.date().default(() => new Date('2026-11-01')),
+    order: z.number().default(1),             // Controls display order (1, 2, 3...)
+    draft: z.boolean().default(false),        // Set to true to hide while preparing
+  }),
+});
+
+export const collections = { blog, books, videos };
